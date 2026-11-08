@@ -1,0 +1,235 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum PropertyType {
+  HOTEL
+  APARTMENT
+  RESORT
+  VILLA
+  HOSTEL
+  GUESTHOUSE
+}
+
+enum BookingStatus {
+  CONFIRMED
+  CANCELLED
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  firstName    String   @map("first_name")
+  lastName     String   @map("last_name")
+  phone        String?
+  role         Role     @default(USER)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  bookings  Booking[]
+  reviews   Review[]
+  favorites Favorite[]
+
+  @@map("users")
+}
+
+model Destination {
+  id          String   @id @default(uuid()) @db.Uuid
+  slug        String   @unique
+  name        String
+  country     String
+  description String
+  imageUrl    String   @map("image_url")
+  featured    Boolean  @default(false)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  properties Property[]
+
+  @@index([name])
+  @@map("destinations")
+}
+
+model Property {
+  id            String       @id @default(uuid()) @db.Uuid
+  slug          String       @unique
+  destinationId String       @map("destination_id") @db.Uuid
+  name          String
+  type          PropertyType
+  description   String
+  address       String
+  latitude      Float
+  longitude     Float
+  stars         Int
+  featured      Boolean      @default(false)
+  /// Denormalized from reviews for sorting; maintained in reviews.service.
+  ratingAvg     Float        @default(0) @map("rating_avg")
+  reviewCount   Int          @default(0) @map("review_count")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+
+  destination Destination       @relation(fields: [destinationId], references: [id], onDelete: Restrict)
+  images      PropertyImage[]
+  rooms       Room[]
+  amenities   PropertyAmenity[]
+  reviews     Review[]
+  favorites   Favorite[]
+
+  @@index([destinationId])
+  @@index([type])
+  @@index([ratingAvg])
+  @@map("properties")
+}
+
+model PropertyImage {
+  id         String @id @default(uuid()) @db.Uuid
+  propertyId String @map("property_id") @db.Uuid
+  url        String
+  alt        String
+  position   Int
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@unique([propertyId, position])
+  @@map("property_images")
+}
+
+model Amenity {
+  id        String   @id @default(uuid()) @db.Uuid
+  slug      String   @unique
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  properties PropertyAmenity[]
+  rooms      RoomAmenity[]
+
+  @@map("amenities")
+}
+
+model PropertyAmenity {
+  propertyId String @map("property_id") @db.Uuid
+  amenityId  String @map("amenity_id") @db.Uuid
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  amenity  Amenity  @relation(fields: [amenityId], references: [id], onDelete: Cascade)
+
+  @@id([propertyId, amenityId])
+  @@index([amenityId])
+  @@map("property_amenities")
+}
+
+model Room {
+  id            String   @id @default(uuid()) @db.Uuid
+  propertyId    String   @map("property_id") @db.Uuid
+  name          String
+  description   String
+  bedType       String   @map("bed_type")
+  sizeSqm       Int      @map("size_sqm")
+  maxGuests     Int      @map("max_guests")
+  /// Minor currency units (cents).
+  pricePerNight Int      @map("price_per_night")
+  /// Number of physical rooms of this category.
+  inventory     Int
+  refundable    Boolean  @default(true)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  property  Property      @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  amenities RoomAmenity[]
+  bookings  Booking[]
+
+  @@unique([propertyId, name])
+  @@index([pricePerNight])
+  @@map("rooms")
+}
+
+model RoomAmenity {
+  roomId    String @map("room_id") @db.Uuid
+  amenityId String @map("amenity_id") @db.Uuid
+
+  room    Room    @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  amenity Amenity @relation(fields: [amenityId], references: [id], onDelete: Cascade)
+
+  @@id([roomId, amenityId])
+  @@index([amenityId])
+  @@map("room_amenities")
+}
+
+model Booking {
+  id              String        @id @default(uuid()) @db.Uuid
+  reference       String        @unique
+  userId          String        @map("user_id") @db.Uuid
+  roomId          String        @map("room_id") @db.Uuid
+  checkIn         DateTime      @map("check_in") @db.Date
+  checkOut        DateTime      @map("check_out") @db.Date
+  adults          Int
+  children        Int           @default(0)
+  roomsCount      Int           @map("rooms_count")
+  guestFirstName  String        @map("guest_first_name")
+  guestLastName   String        @map("guest_last_name")
+  guestEmail      String        @map("guest_email")
+  guestPhone      String?       @map("guest_phone")
+  specialRequests String?       @map("special_requests")
+  /// Price snapshot in minor units, so later rate changes never alter a booking.
+  nightlyPrice    Int           @map("nightly_price")
+  subtotal        Int
+  taxes           Int
+  total           Int
+  currency        String
+  status          BookingStatus @default(CONFIRMED)
+  cancelledAt     DateTime?     @map("cancelled_at")
+  cancelReason    String?       @map("cancel_reason")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+  room Room @relation(fields: [roomId], references: [id], onDelete: Restrict)
+
+  @@index([roomId, status, checkIn, checkOut])
+  @@index([userId, checkIn])
+  @@map("bookings")
+}
+
+model Review {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  propertyId String   @map("property_id") @db.Uuid
+  /// 1 to 10.
+  rating     Int
+  title      String
+  comment    String
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, propertyId])
+  @@index([propertyId, createdAt])
+  @@map("reviews")
+}
+
+model Favorite {
+  userId     String   @map("user_id") @db.Uuid
+  propertyId String   @map("property_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@id([userId, propertyId])
+  @@index([propertyId])
+  @@map("favorites")
+}
