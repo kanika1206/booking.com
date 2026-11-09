@@ -2,7 +2,7 @@ import { useQueries, useQuery } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { FavoriteButton, stayHref, TrustPanel, VerifiedBadge } from '../components/Cards';
-import { copyUrl, DemoTag, Empty, ErrorNote, Icon, Rating, Skeleton, Stars, SyncStatus } from '../components/ui';
+import { copyUrl, DemoTag, Empty, ErrorNote, Icon, Rating, Select, Skeleton, Stars, SyncStatus } from '../components/ui';
 import { reviewSummaries, trustFor } from '../demo/fixtures';
 import { api, ApiError, type PropertyDetail, type RoomAvailability } from '../lib/api';
 import { addDays, dayMonth, money, monthYear, plural, ratingWord } from '../lib/format';
@@ -25,12 +25,11 @@ function AvailabilityCalendar({ property, stay, onPick }: { property: PropertyDe
       queryFn: () => api.availability({ propertyId: property.id, checkIn: d, checkOut: addDays(d, 1), adults: stay.adults, children: stay.children, rooms: stay.rooms }),
     })),
   });
-  const updatedAt = Math.max(...results.map((r) => r.dataUpdatedAt));
   return (
     <section className="card stack md" id="availability">
       <div className="row between wrap">
         <div><h2 className="h4" style={{ fontSize: 20 }}>Availability, {monthYear(stay.checkIn)}</h2><p className="s muted">Lowest all-in price per night. Pick a day to move your check-in.</p></div>
-        <SyncStatus updatedAt={updatedAt} failed={results.some((r) => r.isError)} />
+        <SyncStatus failed={results.some((r) => r.isError)} />
       </div>
       <div className="cal">
         {days.map((d, i) => {
@@ -53,14 +52,14 @@ function AvailabilityCalendar({ property, stay, onPick }: { property: PropertyDe
 
 function GuestSummary({ property }: { property: PropertyDetail }) {
   const summary = reviewSummaries[property.slug];
-  const reviews = useQuery({ queryKey: ['reviews', property.id], queryFn: () => api.reviews(property.id, 4) });
+  const reviews = useQuery({ queryKey: ['reviews', property.id], queryFn: () => api.reviews(property.id, 3) });
   return (
     <section className="card white-ai stack md" id="reviews">
       <div className="row between wrap top">
         <div className="row">
           <span className="icon-tile sm t-ai"><Icon name="sparkle" size={18} /></span>
           <div><h2 className="h4" style={{ fontSize: 20 }}>What guests say</h2>
-            <div className="cap ai">{summary ? 'Sample AI summary' : 'Latest reviews from the database'}</div></div>
+            <div className="cap ai">{summary ? 'Sample AI summary' : 'Recent reviews from past guests'}</div></div>
         </div>
         <div className="row"><div style={{ textAlign: 'right' }}><div className="h4" style={{ fontSize: 16 }}>{ratingWord(property.ratingAvg)}</div><div className="cap muted">{plural(property.reviewCount, 'review')}</div></div><Rating value={property.ratingAvg} large /></div>
       </div>
@@ -71,14 +70,6 @@ function GuestSummary({ property }: { property: PropertyDetail }) {
           <div className="grid-2">
             <div className="tile stack" style={{ background: 'var(--bg-success-tint)' }}><div className="strong ok s">Loved</div>{summary.loved.map((l) => <div className="row s" key={l}><Icon name="check" size={16} className="ok" />{l}</div>)}</div>
             <div className="tile stack" style={{ background: 'var(--bg-warning-tint)' }}><div className="strong warn s">Watch out</div>{summary.watch.map((l) => <div className="row s" key={l}><Icon name="alert" size={16} className="warn" />{l}</div>)}</div>
-          </div>
-          <div className="row wrap" style={{ gap: 16 }}>
-            {summary.scores.map((s) => (
-              <div className="grow" style={{ minWidth: 110 }} key={s.label}>
-                <div className="row between cap muted"><span>{s.label}</span><span>{s.value}</span></div>
-                <div className="bar"><i style={{ width: `${s.value * 10}%`, background: s.value < 8 ? 'var(--warning)' : undefined }} /></div>
-              </div>
-            ))}
           </div>
         </>
       )}
@@ -130,26 +121,19 @@ export function PropertyPage() {
 
   return (
     <div className="page" style={{ paddingTop: 16 }}>
-      <nav className="row s hide-m" aria-label="Breadcrumb" style={{ marginBottom: 16 }}>
-        <Link to={`/search?${stayToParams({ ...stay, destination: property.destination.name })}`}>{property.destination.name}</Link>
-        <Icon name="chevron-right" size={14} /><span className="muted">{property.name}</span>
-      </nav>
-
-      <div className="row wrap" style={{ marginBottom: 8 }}>
-        {trust && <VerifiedBadge />}
-        {trust && <span className="badge brand"><Icon name="star" size={14} />Genius (demo)</span>}
-        <SyncStatus updatedAt={avail.dataUpdatedAt} fetching={avail.isFetching} failed={avail.isError} />
-      </div>
-
-      <div className="row between wrap top">
+      <div className="row between wrap" style={{ alignItems: 'flex-end', paddingTop: 16 }}>
         <div className="grow" style={{ minWidth: 280 }}>
-          <div className="row wrap"><h1 className="h1">{property.name}</h1><Stars count={property.stars} size={20} /></div>
-          <div className="row s link" style={{ fontSize: 14, marginTop: 4 }}><Icon name="map-pin" size={18} />{property.address} · <Link to={`/map?${stayToParams({ ...stay, destination: property.destination.name })}`}>Show map</Link></div>
+          <div className="row wrap" style={{ gap: 12 }}><h1 className="h1">{property.name}</h1><Stars count={property.stars} size={18} /></div>
+          <div className="row wrap s muted" style={{ fontSize: 14, marginTop: 8, gap: 12 }}>
+            <span>{property.address}</span>
+            <Link to={`/map?${stayToParams({ ...stay, destination: property.destination.name })}`}>Show on map</Link>
+            {trust && <VerifiedBadge />}
+          </div>
+          <SyncStatus failed={avail.isError} />
         </div>
         <div className="row hide-m">
           <FavoriteButton id={property.id} name={property.name} className="icon-btn fav-square" />
           <button className="icon-btn" aria-label="Copy link to this stay" onClick={copyUrl}><Icon name="link" /></button>
-          <Link to={roomsHref} className="btn lg">Reserve</Link>
         </div>
       </div>
 
@@ -159,15 +143,7 @@ export function PropertyPage() {
         ))}
       </div>
 
-      <div className="chips hide-m" style={{ marginTop: 24 }}>
-        <a className="chip on" href="#about">Overview</a>
-        <Link className="chip" to={roomsHref}>Rooms &amp; rates</Link>
-        <a className="chip" href="#reviews">Reviews ({property.reviewCount})</a>
-        <a className="chip" href="#availability">Availability</a>
-        <a className="chip" href="#policies">Policies</a>
-      </div>
-
-      <div className="split" style={{ marginTop: 20 }}>
+      <div className="split" style={{ marginTop: 32 }}>
         <div className="stack md" style={{ minWidth: 0 }}>
           <section className="card" id="about"><h2 className="h4" style={{ fontSize: 20, marginBottom: 8 }}>About this stay</h2><p className="muted">{property.description}</p></section>
           <GuestSummary property={property} />
@@ -198,21 +174,15 @@ export function PropertyPage() {
               <label className="field">Check-in<span className="input"><input type="date" value={stay.checkIn} min={new Date().toISOString().slice(0, 10)} onChange={(e) => { if (e.target.value) setStay({ checkIn: e.target.value }); }} /></span></label>
               <label className="field">Check-out<span className="input"><input type="date" value={stay.checkOut} min={addDays(stay.checkIn, 1)} onChange={(e) => { if (e.target.value) setStay({ checkOut: e.target.value }); }} /></span></label>
             </div>
-            <label className="field">Adults
-              <span className="input"><Icon name="users" /><select value={stay.adults} onChange={(e) => setStay({ adults: Number(e.target.value) })}>{[1, 2, 3, 4, 5, 6].map((n) => <option key={n} value={n}>{plural(n, 'adult')}</option>)}</select></span>
-            </label>
+            <div className="field">Adults
+              <Select label="Adults" icon="users" value={stay.adults} onChange={(adults) => setStay({ adults })}
+                options={[1, 2, 3, 4, 5, 6].map((n) => ({ value: n, label: plural(n, 'adult') }))} />
+            </div>
             {avail.error && <ErrorNote error={avail.error} />}
             <Link to={roomsHref} className="btn lg block">Choose your room</Link>
             <div className="row s muted" style={{ justifyContent: 'center' }}><Icon name="lock" size={16} />You won’t be charged</div>
           </div>
           {trust && <TrustPanel trust={trust} />}
-          {trust && (
-            <Link to="/messages" className="card row" style={{ color: 'inherit', textDecoration: 'none' }}>
-              <span className="avatar">{property.name.slice(0, 2).toUpperCase()}</span>
-              <div className="grow"><div className="strong s row wrap">Message the property <DemoTag /></div><div className="cap muted">Sample conversation, protected by Scam Shield</div></div>
-              <Icon name="chevron-right" />
-            </Link>
-          )}
         </aside>
       </div>
 

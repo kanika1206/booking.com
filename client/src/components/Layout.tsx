@@ -1,14 +1,13 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { DEMO_GENIUS_LEVEL } from '../demo/fixtures';
 import { api } from '../lib/api';
 import { initials } from '../lib/format';
 import { useAuth } from '../lib/session';
 import { DemoTag, Icon } from './ui';
 import type { IconName } from './icons';
 
-export const Logo = () => <Link to="/" className="logo">Booking<span>.com</span></Link>;
+export const Logo = () => <Link to="/" className="logo"><Icon name="wave" size={26} /><b style={{ fontWeight: 600 }}>Booking<span>.com</span></b></Link>;
 
 function UserMenu() {
   const { user } = useAuth();
@@ -28,12 +27,9 @@ function UserMenu() {
   if (!user) return <Link to="/login" className="btn secondary">Sign in</Link>;
   return (
     <div ref={ref} style={{ position: 'relative' }}>
-      <button className="user-pill" style={{ border: 0, color: '#fff' }} aria-expanded={open} aria-haspopup="menu" onClick={() => setOpen(!open)}>
+      <button className="user-pill" aria-expanded={open} aria-haspopup="menu" onClick={() => setOpen(!open)}>
         <span className="avatar accent">{initials(user.firstName, user.lastName)}</span>
-        <span className="hide-m" style={{ textAlign: 'left' }}>
-          <span className="s" style={{ display: 'block', fontWeight: 600 }}>{user.firstName}</span>
-          <span className="sub" title="Demo loyalty level, no real programme behind it">{DEMO_GENIUS_LEVEL} (demo)</span>
-        </span>
+        <span className="hide-m s" style={{ fontWeight: 500 }}>{user.firstName}</span>
       </button>
       {open && (
         <div className="pop" role="menu" style={{ left: 'auto', right: 0, minWidth: 200, padding: 8 }}>
@@ -42,6 +38,7 @@ function UserMenu() {
             <li><button role="menuitem" onClick={() => nav('/saved')}><Icon name="heart" size={18} />Saved</button></li>
             <li><button role="menuitem" onClick={() => nav('/messages')}><Icon name="message" size={18} />Messages</button></li>
             <li><button role="menuitem" onClick={() => nav('/account')}><Icon name="user" size={18} />Account</button></li>
+            {user.role === 'ADMIN' && <li><button role="menuitem" onClick={() => nav('/admin')}><Icon name="sliders" size={18} />Admin dashboard</button></li>}
             <li><button role="menuitem" onClick={() => logout.mutate()}><Icon name="external" size={18} />Sign out</button></li>
           </ul>
         </div>
@@ -50,29 +47,28 @@ function UserMenu() {
   );
 }
 
-const notBuilt = 'Not part of this prototype';
+const NAV_LINKS = [
+  { to: '/', label: 'Stays', match: (p: string) => p === '/' || p.startsWith('/search') || p.startsWith('/stays') || p.startsWith('/map') },
+  { to: '/destinations', label: 'Destinations', match: (p: string) => p.startsWith('/destinations') },
+  { to: '/planner', label: 'Trip planner', match: (p: string) => p.startsWith('/planner') },
+  { to: '/trips', label: 'My trips', match: (p: string) => p.startsWith('/trips') || p.startsWith('/bookings') },
+  { to: '/saved', label: 'Saved', match: (p: string) => p.startsWith('/saved') },
+];
 
-function NavBar({ tabs }: { tabs: boolean }) {
-  const loc = useLocation();
+function NavBar() {
+  const { pathname } = useLocation();
   return (
     <header className="nav">
       <div className="nav-top">
         <Logo />
-        <div className="grow" />
-        <span className="nav-item hide-m"><Icon name="globe" />INR · EN</span>
-        <button className="nav-item hide-m" disabled title={notBuilt}><Icon name="home" />List your property</button>
-        <Link to="/messages" className="nav-item" aria-label="Messages"><Icon name="bell" size={24} /></Link>
-        <UserMenu />
-      </div>
-      {tabs && (
-        <nav className="nav-tabs" aria-label="Travel products">
-          <Link to="/" className={`nav-tab${loc.pathname === '/' ? ' on' : ''}`}><Icon name="bed" />Stays</Link>
-          <button className="nav-tab" disabled title={notBuilt}><Icon name="plane" />Flights</button>
-          <button className="nav-tab" disabled title={notBuilt}><Icon name="car" />Car rental</button>
-          <button className="nav-tab" disabled title={notBuilt}><Icon name="compass" />Attractions</button>
-          <Link to="/planner" className="nav-tab ai"><Icon name="sparkle" />AI Trip Planner</Link>
+        <nav className="nav-pill" aria-label="Main">
+          {NAV_LINKS.map((l) => <Link key={l.to} to={l.to} className={l.match(pathname) ? 'on' : ''}>{l.label}</Link>)}
         </nav>
-      )}
+        <div className="nav-right">
+          <Link to="/messages" className="round-cream" aria-label="Messages"><Icon name="bell" size={18} /></Link>
+          <UserMenu />
+        </div>
+      </div>
     </header>
   );
 }
@@ -101,25 +97,33 @@ function TabBar() {
 function Footer() {
   return (
     <footer className="footer">
-      <div className="page">
-        <Logo />
-        <span className="row wrap">
-          <DemoTag label="Prototype" title="Hackathon prototype. No real bookings or payments." />
-          Hackathon prototype. No real stays are booked and no payment is taken.
-        </span>
+      <div className="page footer-grid">
+        <div className="stack" style={{ gap: 12 }}>
+          <Logo />
+          <p className="s muted" style={{ maxWidth: 300 }}>Verified stays across India, priced all-in.</p>
+        </div>
+        <nav className="footer-links" aria-label="Footer">
+          <div className="stack"><b>Explore</b><Link to="/destinations">Destinations</Link><Link to="/planner">Trip planner</Link><Link to="/saved">Saved stays</Link></div>
+          <div className="stack"><b>Hosts</b><Link to="/host">List your property</Link></div>
+          <div className="stack"><b>Support</b><Link to="/help">Help centre</Link><Link to="/trips">My trips</Link><Link to="/about">About</Link></div>
+        </nav>
+      </div>
+      <div className="page footer-base">
+        <span className="row wrap"><DemoTag label="Prototype" title="Hackathon prototype. No real bookings or payments." />No real stays are booked and no payment is taken.</span>
       </div>
     </footer>
   );
 }
 
 /** Full-height screens (map, planner, messages) drop the footer, as they do in Figma. */
-export function Shell({ tabs = false, footer = true }: { tabs?: boolean; footer?: boolean }) {
+export function Shell({ footer = true }: { tabs?: boolean; footer?: boolean }) {
   const { pathname } = useLocation();
   useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
   return (
     <>
-      <NavBar tabs={tabs} />
-      <main><Outlet /></main>
+      <NavBar />
+      {/* Keyed by path, so each new page replays the entrance; filter and sort changes don't. */}
+      <main key={pathname} className="route-in"><Outlet /></main>
       {footer && <Footer />}
       <TabBar />
     </>

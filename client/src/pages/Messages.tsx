@@ -20,7 +20,7 @@ function BlockedMessage({ m }: { m: Extract<DemoMessage, { kind: 'blocked' }> })
       </div>
       <section className="card stack md" style={{ marginLeft: 44, maxWidth: 520, background: 'var(--bg-danger-tint)', borderColor: 'var(--danger)' }} aria-label="Scam Shield warning">
         <div className="row between wrap top">
-          <div className="row"><span className="icon-tile round" style={{ background: 'var(--danger)', color: '#fff' }}><Icon name="shield-alert" size={20} /></span>
+          <div className="row"><span className="icon-tile round" style={{ background: 'var(--danger)', color: 'var(--on-cream)' }}><Icon name="shield-alert" size={20} /></span>
             <div><div className="h4 bad">Scam Shield blocked a payment request</div><div className="cap muted">From {m.who}</div></div></div>
           <DemoTag label="Sample scam" />
         </div>
@@ -82,7 +82,7 @@ export function MessagesPage() {
       </aside>
 
       <section className="msg-main" aria-label={`Conversation with ${thread.name}`}>
-        <div className="row between wrap" style={{ padding: '14px 24px', background: '#fff', borderBottom: '1px solid var(--border)' }}>
+        <div className="row between wrap msg-head">
           <div className="row"><span className={`avatar${thread.tone === 'ai' ? ' ai' : ''}`}>{thread.initials}</span><div><div className="strong">{thread.name}</div><div className="s muted">Sample conversation</div></div></div>
           <span className="badge ai"><Icon name="sparkle" size={14} />Scam Shield (demo)</span>
         </div>

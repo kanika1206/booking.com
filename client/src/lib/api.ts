@@ -33,6 +33,11 @@ const qs = (params: Record<string, string | number | undefined>) => {
 
 export interface User { id: string; email: string; firstName: string; lastName: string; phone: string | null; role: 'USER' | 'ADMIN' }
 export interface Destination { id: string; slug: string; name: string; country: string; description: string; imageUrl: string; propertyCount: number }
+export interface PageMeta { page: number; limit: number; total: number; totalPages: number }
+export type HostStatus = 'NEW' | 'CONTACTED' | 'APPROVED' | 'DECLINED';
+export type PropertyType = 'HOTEL' | 'APARTMENT' | 'RESORT' | 'VILLA' | 'HOSTEL' | 'GUESTHOUSE';
+export interface HostApplicationInput { name: string; email: string; phone?: string; propertyName: string; city: string; propertyType: PropertyType; rooms: number; message?: string }
+export interface HostApplication extends HostApplicationInput { id: string; phone?: string; message?: string; status: HostStatus; createdAt: string }
 export interface Quote { nights: number; rooms: number; nightlyPrice: number; subtotal: number; taxes: number; total: number; taxRate: number; currency: string }
 export interface PropertyCard {
   id: string; slug: string; name: string; type: string; stars: number; address: string;
@@ -107,4 +112,17 @@ export const api = {
   favorites: () => request<{ data: PropertyCard[] }>('/favorites').then((r) => r.data),
   addFavorite: (id: string) => request<void>(`/favorites/${id}`, { method: 'PUT' }),
   removeFavorite: (id: string) => request<void>(`/favorites/${id}`, { method: 'DELETE' }),
+
+  destination: (slug: string) => request<{ data: Destination }>(`/destinations/${encodeURIComponent(slug)}`).then((r) => r.data),
+  postReview: (propertyId: string, input: { rating: number; title: string; comment: string }) =>
+    request<{ data: Review }>(`/properties/${propertyId}/reviews`, { method: 'POST', body: JSON.stringify(input) }).then((r) => r.data),
+
+  applyToHost: (input: HostApplicationInput) =>
+    request<{ data: { id: string; status: HostStatus } }>('/host-applications', { method: 'POST', body: JSON.stringify(input) }).then((r) => r.data),
+
+  // Admin only. The server checks the role; these calls just 403 for anyone else.
+  adminBookings: (page = 1) => request<{ data: Booking[]; meta: PageMeta }>(`/bookings/admin/all${qs({ page, limit: 20 })}`),
+  hostApplications: (status?: HostStatus) => request<{ data: HostApplication[]; meta: PageMeta }>(`/host-applications${qs({ status, limit: 50 })}`),
+  setHostStatus: (id: string, status: HostStatus) =>
+    request<{ data: HostApplication }>(`/host-applications/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) }).then((r) => r.data),
 };

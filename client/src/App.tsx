@@ -3,6 +3,10 @@ import { Shell } from './components/Layout';
 import { Empty } from './components/ui';
 import { RequireAuth } from './lib/session';
 import { AccountPage, LoginPage, RegisterPage, SavedPage } from './pages/Account';
+import { AdminPage } from './pages/Admin';
+import { DestinationPage, DestinationsPage } from './pages/Destinations';
+import { HostPage } from './pages/Host';
+import { AboutPage, HelpPage } from './pages/Info';
 import { CheckoutPage } from './pages/Checkout';
 import { ConfirmationPage } from './pages/Confirmation';
 import { HomePage } from './pages/Home';
@@ -40,6 +44,12 @@ export function App() {
         <Route path="trips" element={<RequireAuth><TripsPage /></RequireAuth>} />
         <Route path="saved" element={<RequireAuth><SavedPage /></RequireAuth>} />
         <Route path="account" element={<RequireAuth><AccountPage /></RequireAuth>} />
+        <Route path="destinations" element={<DestinationsPage />} />
+        <Route path="destinations/:slug" element={<DestinationPage />} />
+        <Route path="host" element={<HostPage />} />
+        <Route path="admin" element={<RequireAuth><AdminPage /></RequireAuth>} />
+        <Route path="help" element={<HelpPage />} />
+        <Route path="about" element={<AboutPage />} />
         <Route path="login" element={<LoginPage />} />
         <Route path="register" element={<RegisterPage />} />
         <Route path="*" element={<NotFound />} />

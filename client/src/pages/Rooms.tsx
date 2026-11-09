@@ -61,7 +61,7 @@ export function RoomsPage() {
         <div className="page">
           <Link to={stayHref(slug, stay)} className="row strong s"><Icon name="chevron-left" size={18} />{property.data?.name ?? 'Back'}</Link>
           <Steps current={1} />
-          <SyncStatus updatedAt={avail.dataUpdatedAt} fetching={avail.isFetching} failed={avail.isError} />
+          <SyncStatus failed={avail.isError} />
         </div>
       </div>
       <div className="page split" style={{ paddingTop: 28 }}>
@@ -81,7 +81,7 @@ export function RoomsPage() {
                   <div className="chips"><button className="chip" aria-pressed={breakfast} onClick={() => { setBreakfast(true); setPicked(null); }}>Yes</button><button className="chip" aria-pressed={!breakfast} onClick={() => { setBreakfast(false); setPicked(null); }}>We’ll eat out</button></div></div>
               </div>
               {recommended && (
-                <div className="tile row" style={{ background: '#fff', fontSize: 14 }}>
+                <div className="tile row" style={{ fontSize: 14 }}>
                   <Icon name="check" className="ok" />
                   <span>Go {rateLabel(recommended)} at {splitRoomName(recommended.name).category}: {money(recommended.quote.total, recommended.quote.currency)} all-in. {cancellationText(recommended.refundable, stay.checkIn)}.</span>
                 </div>

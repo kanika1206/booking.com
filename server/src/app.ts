@@ -10,6 +10,7 @@ import { availabilityRouter } from './modules/availability/availability.routes.j
 import { bookingsRouter } from './modules/bookings/bookings.routes.js';
 import { destinationsRouter } from './modules/destinations/destinations.routes.js';
 import { favoritesRouter } from './modules/favorites/favorites.routes.js';
+import { hostApplicationsRouter } from './modules/host-applications/host-applications.routes.js';
 import { pricingRouter } from './modules/pricing/pricing.routes.js';
 import { propertiesRouter } from './modules/properties/properties.routes.js';
 import { reviewsRouter } from './modules/reviews/reviews.routes.js';
@@ -41,6 +42,7 @@ export function createApp() {
   app.use('/api/pricing', pricingRouter);
   app.use('/api/bookings', bookingsRouter);
   app.use('/api/favorites', favoritesRouter);
+  app.use('/api/host-applications', hostApplicationsRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

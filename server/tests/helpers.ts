@@ -14,7 +14,7 @@ export async function resetDb() {
     throw new Error('Refusing to wipe a non-test database');
   }
   await prisma.$executeRawUnsafe(
-    'TRUNCATE users, destinations, properties, amenities, rooms, bookings, reviews, favorites, property_images, property_amenities, room_amenities CASCADE',
+    'TRUNCATE users, destinations, properties, amenities, rooms, bookings, reviews, favorites, property_images, property_amenities, room_amenities, host_applications CASCADE',
   );
 }
 

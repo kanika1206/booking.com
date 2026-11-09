@@ -30,9 +30,9 @@ Check the API with `curl localhost:4000/api/health`.
 
 ### Which database?
 
-Run the seed against an empty database. It adds the India catalogue from the Figma design and prices everything in INR, so set `CURRENCY=INR` in `server/.env`.
+The seed adds the India catalogue (12 destinations, 39 stays) plus an international one, and prices everything in INR, so set `CURRENCY=INR` in `server/.env`. On an empty database it seeds everything. On a seeded one it only adds destinations whose slug is missing and any missing sample bookings, so you can re-run it after adding catalogue entries without losing data.
 
-If your `booking` database holds older USD seed data, keep it and use a separate one. The seed skips any database that already has properties.
+If your `booking` database holds older USD seed data, keep it and use a separate one.
 
 ```bash
 docker compose exec db psql -U booking -d postgres -c "CREATE DATABASE booking_next"
@@ -54,12 +54,12 @@ Local development only. The seed script refuses to run when `NODE_ENV=production
 
 | Command | Purpose |
 | --- | --- |
-| `npm test` | Run backend tests. Uses a separate `booking_test` database, and Postgres must be running |
-| `npm run db:seed` | Add seed data. Does nothing if the database already has properties |
+| `npm test` | Run backend tests. Uses a separate `booking_test` database on the Docker Postgres. To use another server, set `TEST_DATABASE_URL` (it must end in `/booking_test`) |
+| `npm run db:seed` | Seed an empty database, or top up a seeded one with missing destinations and sample bookings |
 | `npm run db:reset` | **Delete all local data**, then migrate and re-seed |
 | `npm run db:down` | Stop Postgres and keep the data |
 
-Seed images are loaded from Unsplash, so photos need internet access.
+Seed photos are hot-linked from Unsplash (free under the Unsplash License), so they need internet access. The India photo choices are in `server/prisma/photos.ts`.
 
 ## API
 
@@ -83,6 +83,8 @@ All routes are under `/api`. Successful responses look like `{ data, meta? }`, a
 | `GET /bookings/admin/all` | Admin | All bookings |
 | `GET`, `POST /properties/:propertyId/reviews` | Posting: past guest | Read or add reviews |
 | `GET /favorites`, `PUT`, `DELETE /favorites/:propertyId` | User | Wishlist |
+| `POST /host-applications` | | Apply to list a property. Rate limited |
+| `GET /host-applications?status=`, `PATCH /host-applications/:id` | Admin | Review applications and set their status |
 
 `GET /search` accepts `destination`, `checkIn`, `checkOut`, `adults`, `children`, `rooms`, `minPrice`, `maxPrice`, `minRating`, `types`, `amenities`, `sort` (`relevance`, `price_asc`, `price_desc`, `rating`), `page` and `limit`. `types` and `amenities` are comma-separated.
 
@@ -164,7 +166,9 @@ To re-export assets, create a read-only Figma personal access token with file co
 | 10-minute hold timer | A countdown only. Rooms aren't held, so someone else can book first and the server will then reject your booking |
 | Map | An illustration from Figma with no map provider. Pins use real coordinates, scaled and nudged apart |
 
-**Not built:** Flights, Car rental, Attractions and List your property are disabled in the nav. Dark mode isn't built, because the file's dark values need Figma's Enterprise-only variables API.
+**Pages:** home, search, map, property, rooms, checkout, confirmation, trips (with reviews for completed stays), saved, account, planner, messages, destinations and each destination, list your property, help centre, about, and an admin dashboard at `/admin` (sign in as the admin account).
+
+**Not built:** Flights, Car rental and Attractions. Dark mode isn't built, because the file's dark values need Figma's Enterprise-only variables API.
 
 ### Differences from Figma
 

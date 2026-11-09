@@ -375,3 +375,39 @@ describe('error handling', () => {
     expect((await request(app).get('/api/rooms/not-a-uuid')).status).toBe(400);
   });
 });
+
+describe('host applications', () => {
+  const body = { name: 'Meera Iyer', email: 'Meera@Example.com', propertyName: 'Backwater House', city: 'Alleppey', propertyType: 'GUESTHOUSE', rooms: 4 };
+
+  it('accepts a public application and returns only its id and status', async () => {
+    const res = await request(app).post('/api/host-applications').send({ ...body, message: '  ' });
+    expect(res.status).toBe(201);
+    expect(res.body.data).toEqual({ id: expect.any(String), status: 'NEW', createdAt: expect.any(String) });
+    const saved = await prisma.hostApplication.findUniqueOrThrow({ where: { id: res.body.data.id } });
+    expect(saved.email).toBe('meera@example.com');
+    expect(saved.message).toBeNull();
+  });
+
+  it('validates the form', async () => {
+    const res = await request(app).post('/api/host-applications').send({ ...body, email: 'nope', rooms: 0, propertyType: 'CASTLE' });
+    expect(res.status).toBe(400);
+  });
+
+  it('lets only admins list and update applications', async () => {
+    const created = await request(app).post('/api/host-applications').send(body);
+    const id = created.body.data.id as string;
+    expect((await request(app).get('/api/host-applications')).status).toBe(401);
+    const { agent: user } = await registerAgent();
+    expect((await user.get('/api/host-applications')).status).toBe(403);
+    expect((await user.patch(`/api/host-applications/${id}`).send({ status: 'APPROVED' })).status).toBe(403);
+
+    const { agent: admin } = await registerAgent('ADMIN');
+    const list = await admin.get('/api/host-applications?status=NEW');
+    expect(list.status).toBe(200);
+    expect(list.body.data.map((a: { id: string }) => a.id)).toContain(id);
+    const updated = await admin.patch(`/api/host-applications/${id}`).send({ status: 'APPROVED' });
+    expect(updated.body.data.status).toBe('APPROVED');
+    expect((await admin.patch(`/api/host-applications/${id}`).send({ status: 'MAYBE' })).status).toBe(400);
+    expect((await admin.patch('/api/host-applications/00000000-0000-0000-0000-000000000000').send({ status: 'NEW' })).status).toBe(404);
+  });
+});

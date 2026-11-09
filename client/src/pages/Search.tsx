@@ -4,7 +4,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ListCard } from '../components/Cards';
 import { MapBackground } from '../components/MapCanvas';
 import { SearchBar } from '../components/SearchBar';
-import { Empty, ErrorNote, Icon, Skeleton } from '../components/ui';
+import { Empty, ErrorNote, Icon, Skeleton, SyncStatus } from '../components/ui';
 import { api, type SearchResult } from '../lib/api';
 import { dateRange, money, plural, titleCase } from '../lib/format';
 import { writeStore } from '../lib/session';
@@ -28,6 +28,7 @@ export function SearchPage() {
   const nav = useNavigate();
   const stay = stayFromParams(params);
   const [diverse, setDiverse] = useState(true);
+  const [allFacilities, setAllFacilities] = useState(false);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [filtersOpen, setFiltersOpen] = useState(false);
 
@@ -115,9 +116,14 @@ export function SearchPage() {
         {!!meta?.facets.amenities.length && (
           <div className="filter-group">
             <h3>Facilities</h3>
-            {meta.facets.amenities.map((f) => (
+            {(allFacilities ? meta.facets.amenities : meta.facets.amenities.slice(0, 6)).map((f) => (
               <label className="filter-row check" key={f.key}><span className="row"><input type="checkbox" checked={amenities.includes(f.key)} onChange={() => toggle('amenities', amenities, f.key)} />{f.label}</span><span className="s faint">{f.count}</span></label>
             ))}
+            {meta.facets.amenities.length > 6 && (
+              <button className="btn ghost" style={{ alignSelf: 'flex-start', paddingInline: 0 }} onClick={() => setAllFacilities(!allFacilities)}>
+                {allFacilities ? 'Show fewer' : `Show all ${meta.facets.amenities.length}`}
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -133,28 +139,28 @@ export function SearchPage() {
         </div>
       </div>
       <div className="page" style={{ paddingTop: 44 }}>
-        <nav className="row s hide-m" aria-label="Breadcrumb"><Link to="/">Home</Link><Icon name="chevron-right" size={14} /><span className="muted">{term}</span><Icon name="chevron-right" size={14} /><span className="muted">Search results</span></nav>
         <div className="search-layout">
           {filters}
           <div className="stack md" style={{ minWidth: 0 }}>
             <div>
-              <h1 className="h2">{term}: {plural(meta?.total ?? 0, 'stay')} match{meta?.total === 1 ? 'es' : ''}</h1>
-              <p className="s ok" style={{ fontSize: 14 }}>{nights ? `Prices are totals for ${plural(nights, 'night')}, ${plural(stay.adults, 'adult')}, with taxes included` : ''}</p>
+              <h1 className="h2">{plural(meta?.total ?? 0, 'stay')} in {term}</h1>
+              <div className="row wrap" style={{ marginTop: 6, gap: 12 }}>
+                {!!nights && <p className="s muted" style={{ fontSize: 14 }}>Prices are totals for {plural(nights, 'night')}, taxes included</p>}
+                <SyncStatus failed={query.isError} />
+              </div>
             </div>
             <div className="row show-m">
               <button className="btn secondary grow" onClick={() => setFiltersOpen(true)}><Icon name="sliders" size={18} />Filters</button>
               <Link className="btn secondary grow" to={`/map?${params}`}><Icon name="map" size={18} />Map</Link>
             </div>
-            <div className="card tight white-ai row" style={{ gap: 12 }}>
-              <Icon name="sparkle" className="ai" />
-              <div className="grow">
-                <div className="s strong ai">Diverse results {diverse ? 'are on' : 'are off'}</div>
-                <div className="s muted">Stays with the same type and rating band are grouped under one card, so the top results aren’t near-duplicates.</div>
+            <div className="row between wrap" style={{ gap: 12 }}>
+              <div className="chips">
+                {SORTS.map(([v, l]) => <button key={v} className="chip" aria-pressed={sort === v} onClick={() => setParam({ sort: v === 'relevance' ? null : v })}>{l}</button>)}
               </div>
-              <label><span className="sr-only">Diverse results</span><input className="toggle" type="checkbox" checked={diverse} onChange={(e) => setDiverse(e.target.checked)} /></label>
-            </div>
-            <div className="chips">
-              {SORTS.map(([v, l]) => <button key={v} className="chip" aria-pressed={sort === v} onClick={() => setParam({ sort: v === 'relevance' ? null : v })}>{l}</button>)}
+              <label className="row s muted" title="Stays with the same type and rating band are grouped under one card, so the top results aren’t near-duplicates." style={{ gap: 10, cursor: 'pointer' }}>
+                Group lookalikes
+                <input className="toggle" type="checkbox" checked={diverse} onChange={(e) => setDiverse(e.target.checked)} />
+              </label>
             </div>
             {query.error && !results.length ? <ErrorNote error={query.error} retry={() => query.refetch()} /> : query.isLoading ? [0, 1, 2].map((i) => <Skeleton key={i} height={280} />) : results.length === 0 ? (
               <Empty title={`No stays match in ${term}`}>

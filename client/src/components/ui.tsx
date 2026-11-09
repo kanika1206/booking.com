@@ -1,7 +1,6 @@
-import type { ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { api, ApiError, type Quote } from '../lib/api';
 import { lastFreeCancelDay, money, dayMonth, plural } from '../lib/format';
-import { useSecondsAgo } from '../lib/session';
 import { icons, type IconName } from './icons';
 
 export function Icon({ name, size = 20, className }: { name: IconName; size?: number; className?: string }) {
@@ -35,14 +34,13 @@ export const Rating = ({ value, large }: { value: number; large?: boolean }) => 
 );
 
 /**
- * Availability freshness. Unlike the design's fixed "12s ago", this reflects the real last
- * response from the availability or search API, including recheck and failure states.
+ * Availability rechecks quietly in the background. This renders nothing unless that recheck
+ * fails, so a stale price or room count never passes silently.
  */
-export function SyncStatus({ updatedAt, fetching, failed, short }: { updatedAt: number; fetching?: boolean; failed?: boolean; short?: boolean }) {
-  const ago = useSecondsAgo(updatedAt);
+export function SyncStatus({ failed }: { failed?: boolean }) {
+  // Availability still rechecks in the background; the UI only speaks up when that fails.
   if (failed) return <span className="sync failed" role="status">Couldn’t refresh availability</span>;
-  if (fetching && !updatedAt) return <span className="sync checking" role="status">Checking availability</span>;
-  return <span className="sync">{short ? 'Live' : 'Live availability'} · synced {ago}s ago</span>;
+  return null;
 }
 
 export function ErrorNote({ error, retry }: { error: unknown; retry?: () => void }) {
@@ -117,5 +115,56 @@ export function ConfirmPanel({ title, children, confirmLabel, danger, pending, o
   );
 }
 
-export const copyUrl = () => navigator.clipboard?.writeText(window.location.href);
+/**
+ * A themed replacement for <select>. The native menu is drawn by the OS and can't match the
+ * glass theme, so this renders its own listbox with the same keyboard behaviour.
+ */
+export function Select<T extends string | number>({ value, options, onChange, icon, label }: {
+  value: T; options: { value: T; label: string }[]; onChange: (v: T) => void; icon?: IconName; label: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(0);
+  const ref = useRef<HTMLDivElement>(null);
+  const id = useId();
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [open]);
+  const current = options.find((o) => o.value === value);
+  const show = () => { setActive(Math.max(0, options.findIndex((o) => o.value === value))); setOpen(true); };
+  const choose = (i: number) => { onChange(options[i]!.value); setOpen(false); };
+  const onKey = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') { setOpen(false); return; }
+    if (!open && ['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(e.key)) { e.preventDefault(); show(); return; }
+    if (e.key === 'ArrowDown') { e.preventDefault(); setActive((a) => Math.min(options.length - 1, a + 1)); }
+    if (e.key === 'ArrowUp') { e.preventDefault(); setActive((a) => Math.max(0, a - 1)); }
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); choose(active); }
+  };
+  return (
+    <div ref={ref} className="select">
+      <button type="button" className="input select-btn" aria-haspopup="listbox" aria-expanded={open} aria-label={`${label}: ${current?.label ?? ''}`}
+        aria-controls={id} onClick={() => (open ? setOpen(false) : show())} onKeyDown={onKey}>
+        {icon && <Icon name={icon} />}
+        <span className="grow">{current?.label}</span>
+        <Icon name="chevron-down" size={18} className={open ? 'flip' : undefined} />
+      </button>
+      {open && (
+        <ul className="pop select-pop" role="listbox" id={id} aria-label={label}>
+          {options.map((o, i) => (
+            <li key={String(o.value)} role="option" aria-selected={o.value === value}>
+              <button type="button" tabIndex={-1} className={i === active ? 'active' : undefined} onMouseEnter={() => setActive(i)} onClick={() => choose(i)}>
+                <span className="grow">{o.label}</span>
+                {o.value === value && <Icon name="check" size={16} />}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+export const copyUrl =() => navigator.clipboard?.writeText(window.location.href);
 export { api };

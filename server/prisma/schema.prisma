@@ -233,3 +233,29 @@ model Favorite {
   @@index([propertyId])
   @@map("favorites")
 }
+
+enum HostApplicationStatus {
+  NEW
+  CONTACTED
+  APPROVED
+  DECLINED
+}
+
+/// A request from a property owner to list on the platform, reviewed by an admin.
+model HostApplication {
+  id           String                @id @default(uuid()) @db.Uuid
+  name         String
+  email        String
+  phone        String?
+  propertyName String                @map("property_name")
+  city         String
+  propertyType PropertyType          @map("property_type")
+  rooms        Int
+  message      String?
+  status       HostApplicationStatus @default(NEW)
+  createdAt    DateTime              @default(now()) @map("created_at")
+  updatedAt    DateTime              @updatedAt @map("updated_at")
+
+  @@index([status, createdAt])
+  @@map("host_applications")
+}

@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
-import { trustFor, type TrustInfo } from '../demo/fixtures';
+import type { TrustInfo } from '../demo/fixtures';
 import type { PropertyCard, SearchResult } from '../lib/api';
-import { money, plural, ratingWord } from '../lib/format';
+import { money, plural } from '../lib/format';
 import { useFavorites } from '../lib/session';
 import { splitRoomName, stayToParams, type Stay } from '../lib/stay';
 import { cancellationText, DemoTag, Icon, Rating, Stars, SyncStatus } from './ui';
@@ -31,50 +31,42 @@ export const VerifiedBadge = () => (
 export const stayHref = (slug: string, stay?: Stay, suffix = '') =>
   `/stays/${slug}${suffix}${stay ? `?${stayToParams(stay)}` : ''}`;
 
-export function ListCard({ p, stay, why, updatedAt, fetching, failed }: {
-  p: SearchResult; stay: Stay; why: string; updatedAt: number; fetching: boolean; failed: boolean;
+export function ListCard({ p, stay, why, failed }: {
+  p: SearchResult; stay: Stay; why: string; updatedAt?: number; fetching?: boolean; failed: boolean;
 }) {
   const href = stayHref(p.slug, stay);
-  const trust = trustFor(p.slug, p.destination.country);
   return (
     <article className="pcard">
       <Link to={href} className="pcard-img" aria-label={p.name}>
         {p.imageUrl && <img className="scene" src={p.imageUrl} alt={p.imageAlt} loading="lazy" />}
         <FavoriteButton id={p.id} name={p.name} />
       </Link>
-      <div className="stack pcard-mid" style={{ minWidth: 0 }}>
-        <div className="row wrap">
-          <Link to={href} className="pname">{p.name}</Link>
-          <Stars count={p.stars} />
-        </div>
-        <div className="row s link" style={{ alignItems: 'flex-start' }}><Icon name="map-pin" size={16} />{p.address}</div>
-        <div className="row wrap">
-          {trust && <VerifiedBadge />}
-          <SyncStatus updatedAt={updatedAt} fetching={fetching} failed={failed} />
-        </div>
-        <div style={{ paddingLeft: 12, borderLeft: '2px solid var(--border)' }}>
-          <div className="strong s">{splitRoomName(p.room.name).category}</div>
-          <div className="s muted">{p.room.bedType} · {p.room.sizeSqm} m²</div>
-          <div className={`s row ${p.room.refundable ? 'ok' : 'muted'}`}>
-            <Icon name={p.room.refundable ? 'check' : 'x'} size={16} />{cancellationText(p.room.refundable, stay.checkIn)}
+      <div className="stack pcard-mid" style={{ minWidth: 0, gap: 10 }}>
+        <div>
+          <div className="row wrap" style={{ gap: 10 }}>
+            <Link to={href} className="pname">{p.name}</Link>
+            <Stars count={p.stars} size={14} />
           </div>
+          <div className="s muted" style={{ marginTop: 2 }}>{p.address}</div>
         </div>
-        <div className="why"><Icon name="sparkle" size={18} /><span>Why this: {why}</span></div>
+        <div>
+          <div className="s strong">{splitRoomName(p.room.name).category}</div>
+          <div className="s muted">{p.room.bedType} · {p.room.sizeSqm} m²</div>
+        </div>
+        <div className={`s ${p.room.refundable ? 'ok' : 'muted'}`}>{cancellationText(p.room.refundable, stay.checkIn)}</div>
+        <p className="s why-line"><Icon name="sparkle" size={14} />{why.charAt(0).toUpperCase() + why.slice(1)}</p>
+        {failed && <SyncStatus failed />}
       </div>
       <div className="pcard-right">
-        <div className="row hide-m" style={{ alignItems: 'flex-start', textAlign: 'right' }}>
-          <div>
-            <div className="h4" style={{ fontSize: 16 }}>{ratingWord(p.ratingAvg)}</div>
-            <div className="cap muted">{plural(p.reviewCount, 'review')}</div>
-          </div>
-          <Rating value={p.ratingAvg} large />
+        <div className="row" style={{ gap: 10 }}>
+          <span className="s muted">{plural(p.reviewCount, 'review')}</span>
+          <Rating value={p.ratingAvg} />
         </div>
         <div className="stack" style={{ gap: 2, alignItems: 'inherit' }}>
-          <div className="s muted">{p.quote ? `${plural(p.quote.nights, 'night')}, ${plural(stay.adults, 'adult')}` : 'Per night'}</div>
           <div className="price-m">{money(p.quote?.total ?? p.startingPrice ?? 0, p.quote?.currency)}</div>
-          <div className="cap ok">Total incl. all taxes</div>
+          <div className="s muted">{p.quote ? `${plural(p.quote.nights, 'night')}, all-in` : 'per night, all-in'}</div>
         </div>
-        <Link to={href} className="btn">See availability</Link>
+        <Link to={href} className="btn">See rooms</Link>
       </div>
     </article>
   );

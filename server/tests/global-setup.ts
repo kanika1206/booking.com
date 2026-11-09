@@ -5,7 +5,7 @@ export default function setup() {
     stdio: 'pipe',
     env: {
       ...process.env,
-      DATABASE_URL: 'postgresql://booking:booking_local_only@localhost:5433/booking_test',
+      DATABASE_URL: process.env.TEST_DATABASE_URL ?? 'postgresql://booking:booking_local_only@localhost:5433/booking_test',
     },
   });
 }

@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ConfirmPanel, DemoTag, Empty, ErrorNote, Icon, Skeleton } from '../components/ui';
+import { ReviewForm } from '../components/ReviewForm';
 import { api, type Booking } from '../lib/api';
 import { addDays, dateRange, dayMonth, daysFromToday, lastFreeCancelDay, money, monthYear, plural, weekdayDayMonth } from '../lib/format';
 import { rateLabel, splitRoomName, stayToParams } from '../lib/stay';
@@ -136,7 +137,7 @@ function TripDetail({ b, onRebooked }: { b: Booking; onRebooked: (b: Booking) =>
           {upcoming && (
             <section className="card stack md" style={{ background: 'var(--bg-success-tint)', borderColor: 'var(--success)' }}>
               <div className="row between wrap">
-                <div className="row"><span className="icon-tile round" style={{ background: 'var(--success)', color: '#fff' }}><Icon name="shield-check" size={20} /></span>
+                <div className="row"><span className="icon-tile round" style={{ background: 'var(--success)', color: 'var(--on-cream)' }}><Icon name="shield-check" size={20} /></span>
                   <div><div className="h4 ok">Verified payment request</div><div className="cap muted">How a genuine request from the property would look</div></div></div>
                 <DemoTag />
               </div>
@@ -148,6 +149,7 @@ function TripDetail({ b, onRebooked }: { b: Booking; onRebooked: (b: Booking) =>
               ) : <p className="s" role="status">{requestState === 'accepted' ? 'Accepted in this demo. Nothing was charged and your booking is unchanged.' : 'Declined. Your booking is unchanged.'}</p>}
             </section>
           )}
+          {!upcoming && !cancelled && <ReviewForm key={b.id} b={b} />}
           {!upcoming && !cancelled && <button className="btn secondary" style={{ alignSelf: 'flex-start' }} onClick={() => nav(`/stays/${b.property.slug}#reviews`)}>View property &amp; reviews</button>}
         </>
       )}

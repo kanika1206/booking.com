@@ -51,7 +51,9 @@ export const icons = {
   "users": "<path d=\"M12.5 8C12.5 9.933 10.933 11.5 9 11.5C7.067 11.5 5.5 9.933 5.5 8C5.5 6.067 7.067 4.5 9 4.5C10.933 4.5 12.5 6.067 12.5 8Z\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke=\"currentColor\"/><path d=\"M2 20C2 16.5 5 14.5 9 14.5C13 14.5 16 16.5 16 20M16 4.5C16.9283 4.5 17.8185 4.86875 18.4749 5.52513C19.1313 6.1815 19.5 7.07174 19.5 8C19.5 8.92826 19.1313 9.8185 18.4749 10.4749C17.8185 11.1313 16.9283 11.5 16 11.5M18 14.6C20.4 15.2 22 17 22 20\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke=\"currentColor\"/>",
   "utensils": "<path d=\"M3 2V9C3 10.1 3.9 11 5 11H7M7 11H9C9.53043 11 10.0391 10.7893 10.4142 10.4142C10.7893 10.0391 11 9.53043 11 9V2M7 11V2M7 11V22M21 15V2C19.6739 2 18.4021 2.52678 17.4645 3.46447C16.5268 4.40215 16 5.67392 16 7V13C16 14.1 16.9 15 18 15H21ZM21 15V22\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke=\"currentColor\"/>",
   "wifi": "<path d=\"M5 12.6C6.86929 10.7677 9.38247 9.74143 12 9.74143C14.6175 9.74143 17.1307 10.7677 19 12.6M8.5 16.1C9.43464 15.1839 10.6912 14.6707 12 14.6707C13.3088 14.6707 14.5654 15.1839 15.5 16.1M2 9C4.75011 6.54023 8.31034 5.18034 12 5.18034C15.6897 5.18034 19.2499 6.54023 22 9M12 20H12.01\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke=\"currentColor\"/>",
-  "x": "<path d=\"M18 6L12 12M12 12L6 18M12 12L6 6M12 12L18 18\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke=\"currentColor\"/>"
+  "x": "<path d=\"M18 6L12 12M12 12L6 18M12 12L6 6M12 12L18 18\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke=\"currentColor\"/>",
+  "arrow-up-right": "<path d=\"M7 17L17 7M17 7H8.5M17 7V15.5\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke=\"currentColor\"/>",
+  "wave": "<path d=\"M2 13.5C4.2 9.5 6.4 9.5 8.6 12C10.8 14.5 13.2 14.5 15.4 12C17.6 9.5 19.8 9.5 22 13.5\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke=\"currentColor\"/>"
 } as const;
 
 export type IconName = keyof typeof icons;

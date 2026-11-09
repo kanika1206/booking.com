@@ -59,7 +59,7 @@ export function MapPage() {
             <div className="stack" style={{ padding: 16 }}>
               <div className="row between"><span className="strong" style={{ fontSize: 17 }}>{selected.name}</span><Rating value={selected.ratingAvg} /></div>
               {trustFor(selected.slug, selected.destination.country) && <VerifiedBadge />}
-              <SyncStatus updatedAt={q.dataUpdatedAt} fetching={q.isFetching} failed={q.isError} />
+              <SyncStatus failed={q.isError} />
               <div className="row between">
                 <div><div className="price-m">{money(selected.quote?.total ?? 0)}</div><div className="s muted">{plural(nights, 'night')} · all-in</div></div>
                 <Link className="btn" to={stayHref(selected.slug, stay)}>View</Link>

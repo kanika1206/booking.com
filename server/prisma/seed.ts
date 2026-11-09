@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import bcrypt from 'bcryptjs';
 import { PrismaClient, type PropertyType } from '@prisma/client';
+import { destinationPhoto, propertyPhotos } from './photos.js';
 
 if (process.env.NODE_ENV === 'production') {
   console.error('Refusing to seed: creates accounts with published demo passwords.');
@@ -13,7 +14,6 @@ const img = (id: string, w = 1200) =>
 
 const USD_TO_INR = 85; // The international catalogue below is priced in dollars; amounts are stored in paise.
 const TAX_RATE = Number(process.env.TAX_RATE ?? 0.12);
-const scene = (name: string) => `/illustrations/scene-${name}.svg`;
 
 const destinations = [
   { slug: 'paris', name: 'Paris', country: 'France', image: '1502602898657-3e91760cbb34', featured: false, lat: 48.8566, lng: 2.3522, description: 'Grand boulevards, riverside walks and neighbourhood bistros.' },
@@ -83,6 +83,14 @@ const indiaDestinations = [
   { slug: 'jaipur', name: 'Jaipur', country: 'India', scene: 'heritage', description: 'Palaces, bazaars and courtyard havelis.' },
   { slug: 'manali', name: 'Manali', country: 'India', scene: 'mountain', description: 'Cedar forests, snow peaks and mountain cafes.' },
   { slug: 'jaisalmer', name: 'Jaisalmer', country: 'India', scene: 'desert', description: 'A golden fort rising from the Thar desert.' },
+  { slug: 'udaipur', name: 'Udaipur', country: 'India', scene: 'lake', featured: false, description: 'Lake palaces, rooftop sunsets and old-city ghats.' },
+  { slug: 'rishikesh', name: 'Rishikesh', country: 'India', scene: 'mountain', featured: false, description: 'Riverside ashrams, white-water rafting and Himalayan foothills.' },
+  { slug: 'munnar', name: 'Munnar', country: 'India', scene: 'mountain', featured: false, description: 'Rolling tea estates, misty mornings and cool hill air.' },
+  { slug: 'alleppey', name: 'Alleppey', country: 'India', scene: 'lake', featured: false, description: 'Houseboats drifting through Kerala\u2019s palm-lined backwaters.' },
+  { slug: 'varanasi', name: 'Varanasi', country: 'India', scene: 'heritage', featured: false, description: 'Ancient ghats, evening aarti and sunrise on the Ganges.' },
+  { slug: 'pondicherry', name: 'Pondicherry', country: 'India', scene: 'heritage', featured: false, description: 'French Quarter lanes, sea promenades and Auroville nearby.' },
+  { slug: 'darjeeling', name: 'Darjeeling', country: 'India', scene: 'mountain', featured: false, description: 'Tea gardens, the toy train and Kanchenjunga at dawn.' },
+  { slug: 'mumbai', name: 'Mumbai', country: 'India', scene: 'city', featured: false, description: 'Sea-facing promenades, colonial landmarks and late-night food.' },
 ];
 
 /** Room names use "Room category | Rate", which the client groups into one card per category. */
@@ -124,7 +132,44 @@ const indiaProperties: IndiaProperty[] = [
   { name: 'Solang Valley Retreat', type: 'RESORT', stars: 4, dest: 'manali', lat: 32.3160, lng: 77.1570, address: 'Solang Valley, Himachal Pradesh 175131', rating: 9.0, scenes: ['mountain', 'lake', 'room', 'pool', 'city'], amenities: ['wifi', 'restaurant', 'spa', 'family-rooms', 'parking'], about: 'A valley resort with snow views and a spa.', rooms: rates('Valley View Room', '1 king bed', 36, 3, 5200, 5) },
   { name: 'Golden Fort Haveli', type: 'GUESTHOUSE', stars: 3, dest: 'jaisalmer', lat: 26.9124, lng: 70.9125, address: 'Fort Road, Jaisalmer, Rajasthan 345001', rating: 8.5, scenes: ['desert', 'heritage', 'room', 'city', 'lake'], amenities: ['wifi', 'breakfast', 'air-conditioning'], about: 'A sandstone haveli in the shadow of the fort.', rooms: rates('Sandstone Room', '1 queen bed', 24, 2, 3100, 5) },
   { name: 'Sam Dunes Camp', type: 'RESORT', stars: 4, dest: 'jaisalmer', lat: 26.8320, lng: 70.5120, address: 'Sam Sand Dunes, Jaisalmer, Rajasthan 345001', rating: 8.9, scenes: ['desert', 'mountain', 'room', 'lake', 'heritage'], amenities: ['restaurant', 'breakfast', 'parking'], about: 'Swiss tents among the dunes, with dinner under the stars.', rooms: rates('Swiss Tent', '1 king bed', 30, 3, 4600, 6) },
+  { name: 'Lake Pichola Palace Haveli', type: 'GUESTHOUSE', stars: 4, dest: 'udaipur', lat: 24.5770, lng: 73.6830, address: 'Gangaur Ghat, Old City, Udaipur, Rajasthan 313001', rating: 9.1, scenes: ['heritage', 'room', 'lake', 'city', 'pool'], amenities: ['wifi', 'breakfast', 'restaurant', 'air-conditioning'], about: 'A family-run haveli with a rooftop terrace facing the City Palace.', rooms: rates('Lake View Room', '1 king bed', 30, 2, 6800, 4) },
+  { name: 'Aravalli Sunset Resort', type: 'RESORT', stars: 5, dest: 'udaipur', lat: 24.6050, lng: 73.6700, address: 'Fateh Sagar Road, Udaipur, Rajasthan 313004', rating: 9.3, scenes: ['pool', 'room', 'lake', 'heritage', 'city'], amenities: ['pool', 'spa', 'restaurant', 'wifi', 'parking', 'family-rooms'], about: 'Hillside suites and an infinity pool that catches the sunset over the Aravallis.', rooms: rates('Hill View Suite', '1 king bed', 48, 3, 12600, 3) },
+  { name: 'Ambrai Ghat Homestay', type: 'GUESTHOUSE', stars: 3, dest: 'udaipur', lat: 24.5790, lng: 73.6810, address: 'Hanuman Ghat, Udaipur, Rajasthan 313001', rating: 8.6, scenes: ['lake', 'room', 'heritage', 'city', 'pool'], amenities: ['wifi', 'breakfast', 'air-conditioning'], about: 'Simple rooms on the quiet side of the lake, steps from the ghat.', rooms: rates('Courtyard Room', '1 double bed', 20, 2, 2900, 5) },
+  { name: 'Ganga View Retreat', type: 'HOTEL', stars: 4, dest: 'rishikesh', lat: 30.1240, lng: 78.3180, address: 'Tapovan, Rishikesh, Uttarakhand 249192', rating: 8.9, scenes: ['mountain', 'room', 'pool', 'lake', 'city'], amenities: ['wifi', 'restaurant', 'breakfast', 'air-conditioning'], about: 'River-facing rooms above Tapovan, with morning yoga on the terrace.', rooms: rates('River View Room', '1 king bed', 28, 2, 4200, 6) },
+  { name: 'Laxman Jhula Yoga House', type: 'GUESTHOUSE', stars: 3, dest: 'rishikesh', lat: 30.1255, lng: 78.3290, address: 'Laxman Jhula, Rishikesh, Uttarakhand 249302', rating: 8.7, scenes: ['mountain', 'room', 'lake', 'city', 'pool'], amenities: ['wifi', 'breakfast', 'pet-friendly'], about: 'A calm guesthouse with daily yoga classes, a short walk from the bridge.', rooms: rates('Garden Room', '1 double bed', 18, 2, 2100, 8) },
+  { name: 'Shivpuri Riverside Camp', type: 'RESORT', stars: 3, dest: 'rishikesh', lat: 30.1420, lng: 78.3890, address: 'Shivpuri, Rishikesh, Uttarakhand 249192', rating: 8.5, scenes: ['lake', 'room', 'mountain', 'pool', 'city'], amenities: ['restaurant', 'breakfast', 'parking'], about: 'Riverside tents at the start of the rafting stretch, with bonfire dinners.', rooms: rates('Riverside Tent', '1 king bed', 26, 3, 3600, 6) },
+  { name: 'Tea Valley Bungalow', type: 'VILLA', stars: 4, dest: 'munnar', lat: 10.0950, lng: 77.0650, address: 'Chithirapuram, Munnar, Kerala 685565', rating: 9.2, scenes: ['mountain', 'room', 'lake', 'pool', 'city'], amenities: ['wifi', 'kitchen', 'parking', 'family-rooms'], about: 'A restored planter’s bungalow in the middle of a working tea estate.', rooms: rates('Planter’s Bungalow', '2 king beds', 90, 5, 9800, 2) },
+  { name: 'Misty Hills Resort', type: 'RESORT', stars: 4, dest: 'munnar', lat: 10.0600, lng: 77.0400, address: 'Pallivasal, Munnar, Kerala 685612', rating: 8.8, scenes: ['mountain', 'pool', 'room', 'lake', 'city'], amenities: ['spa', 'restaurant', 'pool', 'wifi'], about: 'Valley-view rooms, an Ayurvedic spa and a heated pool for cold mornings.', rooms: rates('Valley Room', '1 king bed', 34, 3, 6100, 5) },
+  { name: 'Kanan Devan Homestay', type: 'GUESTHOUSE', stars: 3, dest: 'munnar', lat: 10.0880, lng: 77.0600, address: 'Old Munnar, Kerala 685612', rating: 8.4, scenes: ['mountain', 'room', 'lake', 'city', 'pool'], amenities: ['wifi', 'breakfast'], about: 'A homestay run by a tea-growing family, with home-cooked Kerala meals.', rooms: rates('Hill Room', '1 queen bed', 20, 2, 2600, 5) },
+  { name: 'Vembanad Houseboats', type: 'RESORT', stars: 4, dest: 'alleppey', lat: 9.5200, lng: 76.3600, address: 'Finishing Point, Punnamada, Alappuzha, Kerala 688013', rating: 9.0, scenes: ['lake', 'room', 'beach', 'pool', 'city'], amenities: ['breakfast', 'restaurant', 'air-conditioning'], about: 'Private houseboats with a crew and cook, cruising overnight on Vembanad Lake.', rooms: rates('Premium Houseboat', '1 king bed', 28, 2, 9200, 3) },
+  { name: 'Kumarakom Lake Villas', type: 'VILLA', stars: 5, dest: 'alleppey', lat: 9.6150, lng: 76.4290, address: 'Kumarakom, Kottayam, Kerala 686563', rating: 9.4, scenes: ['pool', 'lake', 'room', 'beach', 'city'], amenities: ['pool', 'spa', 'wifi', 'restaurant', 'family-rooms'], about: 'Lakeside villas with private pools on the edge of a bird sanctuary.', rooms: rates('Lake Villa with Pool', '1 king bed', 70, 3, 15800, 2) },
+  { name: 'Marari Palm Cottages', type: 'GUESTHOUSE', stars: 3, dest: 'alleppey', lat: 9.5960, lng: 76.2980, address: 'Mararikulam, Alappuzha, Kerala 688549', rating: 8.6, scenes: ['beach', 'room', 'lake', 'city', 'pool'], amenities: ['beachfront', 'breakfast', 'wifi'], about: 'Thatched cottages between the backwaters and a quiet fishing beach.', rooms: rates('Palm Cottage', '1 queen bed', 24, 2, 3800, 5) },
+  { name: 'Ghat House Varanasi', type: 'GUESTHOUSE', stars: 4, dest: 'varanasi', lat: 25.3080, lng: 83.0100, address: 'Assi Ghat, Varanasi, Uttar Pradesh 221005', rating: 8.9, scenes: ['heritage', 'room', 'city', 'lake', 'pool'], amenities: ['wifi', 'breakfast', 'restaurant', 'air-conditioning'], about: 'A riverfront house on Assi Ghat, with sunrise boat rides arranged at the desk.', rooms: rates('Ganga View Room', '1 queen bed', 24, 2, 3900, 5) },
+  { name: 'Kashi Heritage Hotel', type: 'HOTEL', stars: 4, dest: 'varanasi', lat: 25.3100, lng: 83.0060, address: 'Dashashwamedh Road, Varanasi, Uttar Pradesh 221001', rating: 8.4, scenes: ['city', 'room', 'heritage', 'lake', 'pool'], amenities: ['wifi', 'restaurant', 'air-conditioning', 'room-service'], about: 'A short walk from the evening aarti, with quiet rooms set back from the lane.', rooms: rates('Deluxe Room', '1 king bed', 28, 3, 4600, 8) },
+  { name: 'Sarnath Garden Retreat', type: 'RESORT', stars: 3, dest: 'varanasi', lat: 25.3810, lng: 83.0240, address: 'Sarnath, Varanasi, Uttar Pradesh 221007', rating: 8.2, scenes: ['room', 'pool', 'city', 'heritage', 'lake'], amenities: ['pool', 'wifi', 'parking'], about: 'Garden rooms near the Sarnath stupas, away from the old-city crowds.', rooms: rates('Garden Room', '1 king bed', 30, 3, 3300, 6) },
+  { name: 'Rue Romain Rolland Villa', type: 'GUESTHOUSE', stars: 4, dest: 'pondicherry', lat: 11.9330, lng: 79.8350, address: 'White Town, Puducherry 605001', rating: 9.1, scenes: ['heritage', 'room', 'city', 'beach', 'pool'], amenities: ['wifi', 'breakfast', 'air-conditioning', 'restaurant'], about: 'A restored French villa with a courtyard cafe, two lanes from the sea.', rooms: rates('French Quarter Room', '1 queen bed', 26, 2, 5200, 5) },
+  { name: 'Promenade Sea Hotel', type: 'HOTEL', stars: 4, dest: 'pondicherry', lat: 11.9310, lng: 79.8370, address: 'Goubert Avenue, Puducherry 605001', rating: 8.6, scenes: ['beach', 'room', 'city', 'pool', 'heritage'], amenities: ['wifi', 'restaurant', 'sea-view', 'gym'], about: 'Sea-facing rooms right on the promenade, with breakfast on the terrace.', rooms: rates('Sea View King', '1 king bed', 30, 3, 6400, 6) },
+  { name: 'Auroville Earth Huts', type: 'GUESTHOUSE', stars: 3, dest: 'pondicherry', lat: 12.0070, lng: 79.8100, address: 'Auroville, Tamil Nadu 605101', rating: 8.8, scenes: ['room', 'city', 'beach', 'lake', 'heritage'], amenities: ['wifi', 'breakfast', 'pet-friendly'], about: 'Low-impact earth huts in the Auroville forest, with bikes to borrow.', rooms: rates('Earth Hut', '1 double bed', 22, 2, 2800, 6) },
+  { name: 'Kanchenjunga View Hotel', type: 'HOTEL', stars: 4, dest: 'darjeeling', lat: 27.0450, lng: 88.2650, address: 'The Mall, Darjeeling, West Bengal 734101', rating: 8.9, scenes: ['mountain', 'room', 'city', 'lake', 'pool'], amenities: ['wifi', 'restaurant', 'breakfast', 'room-service'], about: 'Rooms facing Kanchenjunga, a minute from the Mall and Chowrasta.', rooms: rates('Mountain View Room', '1 king bed', 28, 3, 5600, 6) },
+  { name: 'Happy Valley Tea Estate Stay', type: 'VILLA', stars: 4, dest: 'darjeeling', lat: 27.0520, lng: 88.2600, address: 'Happy Valley, Darjeeling, West Bengal 734101', rating: 9.2, scenes: ['mountain', 'room', 'lake', 'city', 'pool'], amenities: ['breakfast', 'wifi', 'parking', 'family-rooms'], about: 'Suites in a heritage tea estate, with tastings and garden walks included.', rooms: rates('Tea Planter Suite', '1 king bed', 45, 3, 8900, 2) },
+  { name: 'Toy Train Guesthouse', type: 'GUESTHOUSE', stars: 3, dest: 'darjeeling', lat: 27.0380, lng: 88.2630, address: 'Hill Cart Road, Darjeeling, West Bengal 734101', rating: 8.3, scenes: ['city', 'room', 'mountain', 'lake', 'pool'], amenities: ['wifi', 'breakfast'], about: 'A cosy guesthouse beside the toy train line, close to the station.', rooms: rates('Cosy Double', '1 double bed', 16, 2, 2300, 6) },
+  { name: 'Colaba Sea Palace', type: 'HOTEL', stars: 5, dest: 'mumbai', lat: 18.9220, lng: 72.8330, address: 'Apollo Bunder, Colaba, Mumbai, Maharashtra 400001', rating: 9.3, scenes: ['city', 'room', 'pool', 'lake', 'heritage'], amenities: ['wifi', 'spa', 'restaurant', 'bar', 'gym', 'room-service'], about: 'Harbour-view rooms facing the Gateway of India, with a rooftop bar.', rooms: rates('Harbour View King', '1 king bed', 40, 3, 18500, 4) },
+  { name: 'Bandra Bay Apartments', type: 'APARTMENT', stars: 4, dest: 'mumbai', lat: 19.0600, lng: 72.8300, address: 'Bandstand, Bandra West, Mumbai, Maharashtra 400050', rating: 8.7, scenes: ['city', 'room', 'lake', 'heritage', 'pool'], amenities: ['wifi', 'kitchen', 'air-conditioning', 'laundry'], about: 'Serviced apartments near the Bandstand promenade, made for longer stays.', rooms: rates('One-Bedroom Apartment', '1 king bed and sofa bed', 52, 4, 9400, 3) },
+  { name: 'Fort District Hostel', type: 'HOSTEL', stars: 2, dest: 'mumbai', lat: 18.9330, lng: 72.8350, address: 'Kala Ghoda, Fort, Mumbai, Maharashtra 400001', rating: 8.1, scenes: ['city', 'room', 'heritage', 'lake', 'pool'], amenities: ['wifi', 'bar', 'laundry'], about: 'A design-led hostel in the Kala Ghoda art district, with private twins.', rooms: rates('Private Twin', '2 single beds', 14, 2, 2600, 6) },
 ];
+
+/** Upcoming stays by other guests, so the admin dashboard has more than the demo account's trips. */
+const guestBookings: { ref: string; property: string; reviewer: number; from: number; nights: number; adults: number; cancelled?: boolean }[] = [
+  { ref: 'BKSEED00001', property: 'Lake Pichola Palace Haveli', reviewer: 0, from: 18, nights: 3, adults: 2 },
+  { ref: 'BKSEED00002', property: 'Vembanad Houseboats', reviewer: 2, from: 25, nights: 1, adults: 2 },
+  { ref: 'BKSEED00003', property: 'Colaba Sea Palace', reviewer: 4, from: 9, nights: 2, adults: 1 },
+  { ref: 'BKSEED00004', property: 'Tea Valley Bungalow', reviewer: 6, from: 40, nights: 4, adults: 4 },
+  { ref: 'BKSEED00005', property: 'Ghat House Varanasi', reviewer: 8, from: 12, nights: 2, adults: 2, cancelled: true },
+  { ref: 'BKSEED00006', property: 'Rue Romain Rolland Villa', reviewer: 10, from: 33, nights: 3, adults: 2 },
+  { ref: 'BKSEED00007', property: 'Kanchenjunga View Hotel', reviewer: 12, from: 21, nights: 2, adults: 2 },
+  { ref: 'BKSEED00008', property: 'Azure Bay Villas', reviewer: 14, from: 47, nights: 5, adults: 4 },
+];
+
 
 /** Ratings of 1-10 whose average lands on the target, so a property's score matches its reviews. */
 function ratingsFor(target: number, count: number) {
@@ -222,13 +267,109 @@ const dayOffset = (days: number) => {
   return new Date(d.getTime() + days * 86_400_000);
 };
 
+type Pick = <T>(items: T[]) => T;
+
+/**
+ * Adds every India destination whose slug isn't in the database yet, with its stays, rooms and
+ * reviews. Returns the created rooms, keyed for the demo account's sample bookings.
+ */
+async function seedIndiaCatalogue(rand: () => number, pick: Pick, amenityIds: Map<string, string>, reviewerIds: string[]) {
+  const indiaRooms = new Map<string, { id: string; price: number }>();
+  const existing = new Set((await prisma.destination.findMany({ select: { slug: true } })).map((d) => d.slug));
+  for (const d of indiaDestinations.filter((x) => !existing.has(x.slug))) {
+    const row = await prisma.destination.create({
+      data: { slug: d.slug, name: d.name, country: d.country, description: d.description, imageUrl: destinationPhoto(d.slug), featured: d.featured ?? true },
+    });
+    for (const p of indiaProperties.filter((x) => x.dest === d.slug)) {
+      const authors = [...reviewerIds].sort(() => rand() - 0.5).slice(0, 12);
+      const ratings = ratingsFor(p.rating, authors.length);
+      const property = await prisma.property.create({
+        data: {
+          slug: slugify(p.name),
+          name: p.name,
+          type: p.type,
+          stars: p.stars,
+          destinationId: row.id,
+          description: `${p.about} ${d.description}`,
+          address: p.address,
+          latitude: p.lat,
+          longitude: p.lng,
+          featured: p.featured ?? false,
+          ratingAvg: ratings.reduce((a, b) => a + b, 0) / ratings.length,
+          reviewCount: ratings.length,
+          images: { create: propertyPhotos(p.name, d.slug, p.scenes, indiaProperties.indexOf(p)).map((image, position) => ({ ...image, position })) },
+          amenities: { create: p.amenities.map((slug) => ({ amenityId: amenityIds.get(slug)! })) },
+          reviews: {
+            create: authors.map((userId, i) => {
+              const [title, comment] = pick(reviewText[ratings[i]! >= 9 ? 'great' : 'good']);
+              return { userId, rating: ratings[i]!, title, comment, createdAt: dayOffset(-Math.floor(rand() * 300) - 5) };
+            }),
+          },
+        },
+      });
+      for (const r of p.rooms) {
+        // Seeded so the tax-inclusive nightly price is the round figure shown in the design.
+        const price = Math.round((r.allInNight * 100) / (1 + TAX_RATE));
+        const room = await prisma.room.create({
+          data: {
+            propertyId: property.id, name: r.name, bedType: r.bed, sizeSqm: r.sqm, maxGuests: r.guests,
+            pricePerNight: price, inventory: r.inventory, refundable: r.refundable,
+            description: `${r.sqm} m² with ${r.bed}. Sleeps up to ${r.guests}.`,
+            amenities: { create: ['wifi', 'tv', 'air-conditioning'].map((slug) => ({ amenityId: amenityIds.get(slug)! })) },
+          },
+        });
+        indiaRooms.set(r.name.startsWith('Garden Villa') || p.name === 'Saltwater Cove Resort' ? r.name : `${p.name}: ${r.name}`, { id: room.id, price });
+      }
+    }
+  }
+  return indiaRooms;
+}
+
+/** Other guests' bookings, each skipped if its reference already exists. */
+async function seedGuestBookings(reviewerIds: string[]) {
+  const users = await prisma.user.findMany({ where: { id: { in: reviewerIds } } });
+  let added = 0;
+  for (const b of guestBookings) {
+    if (await prisma.booking.findUnique({ where: { reference: b.ref } })) continue;
+    const user = users.find((u) => u.id === reviewerIds[b.reviewer % reviewerIds.length]);
+    // The property's cheapest flexible rate. Inventory is at least 2, so one booking never sells it out.
+    const room = await prisma.room.findFirst({ where: { property: { name: b.property }, refundable: true }, orderBy: { pricePerNight: 'asc' } });
+    if (!user || !room) continue;
+    const subtotal = room.pricePerNight * b.nights;
+    const taxes = Math.round(subtotal * TAX_RATE);
+    await prisma.booking.create({
+      data: {
+        reference: b.ref, userId: user.id, roomId: room.id, checkIn: dayOffset(b.from), checkOut: dayOffset(b.from + b.nights),
+        adults: b.adults, roomsCount: 1, guestFirstName: user.firstName, guestLastName: user.lastName, guestEmail: user.email,
+        nightlyPrice: room.pricePerNight, subtotal, taxes, total: subtotal + taxes, currency: process.env.CURRENCY ?? 'INR',
+        status: b.cancelled ? 'CANCELLED' : 'CONFIRMED', cancelledAt: b.cancelled ? new Date() : null,
+      },
+    });
+    added++;
+  }
+  return added;
+}
+
+const counts = async () => ({
+  destinations: await prisma.destination.count(), properties: await prisma.property.count(),
+  rooms: await prisma.room.count(), amenities: await prisma.amenity.count(),
+  reviews: await prisma.review.count(), users: await prisma.user.count(), bookings: await prisma.booking.count(),
+});
+
 async function main() {
+  const rand = mulberry32(20261108);
+  const pick: Pick = (items) => items[Math.floor(rand() * items.length)]!;
+
+  // Already seeded: add any new catalogue entries and sample bookings, and leave everything else alone.
   if ((await prisma.property.count()) > 0) {
-    console.log('Database already seeded. Use "npm run db:reset" to wipe and re-seed.');
+    const amenityIds = new Map((await prisma.amenity.findMany()).map((a) => [a.slug, a.id]));
+    const reviewerIds = (await prisma.user.findMany({ where: { email: { endsWith: '@reviews.example.com' } }, orderBy: { email: 'asc' } })).map((u) => u.id);
+    const before = await prisma.property.count();
+    await seedIndiaCatalogue(rand, pick, amenityIds, reviewerIds);
+    const bookings = await seedGuestBookings(reviewerIds);
+    console.log(`Topped up: ${(await prisma.property.count()) - before} new stays, ${bookings} new sample bookings.`, await counts());
     return;
   }
-  const rand = mulberry32(20261108);
-  const pick = <T,>(items: T[]): T => items[Math.floor(rand() * items.length)]!;
   const cost = Number(process.env.BCRYPT_COST ?? 12);
 
   const amenityIds = new Map<string, string>();
@@ -262,53 +403,7 @@ async function main() {
     data: { email: 'admin@example.com', firstName: 'Admin', lastName: 'User', role: 'ADMIN', passwordHash: await bcrypt.hash('Admin1234!', cost) },
   });
 
-  const indiaRooms = new Map<string, { id: string; price: number }>();
-  for (const d of indiaDestinations) {
-    const row = await prisma.destination.create({
-      data: { slug: d.slug, name: d.name, country: d.country, description: d.description, imageUrl: scene(d.scene), featured: true },
-    });
-    for (const p of indiaProperties.filter((x) => x.dest === d.slug)) {
-      const authors = [...reviewerIds].sort(() => rand() - 0.5).slice(0, 12);
-      const ratings = ratingsFor(p.rating, authors.length);
-      const property = await prisma.property.create({
-        data: {
-          slug: slugify(p.name),
-          name: p.name,
-          type: p.type,
-          stars: p.stars,
-          destinationId: row.id,
-          description: `${p.about} ${d.description}`,
-          address: p.address,
-          latitude: p.lat,
-          longitude: p.lng,
-          featured: p.featured ?? false,
-          ratingAvg: ratings.reduce((a, b) => a + b, 0) / ratings.length,
-          reviewCount: ratings.length,
-          images: { create: p.scenes.map((s, position) => ({ url: scene(s), alt: `${p.name}, ${s} illustration`, position })) },
-          amenities: { create: p.amenities.map((slug) => ({ amenityId: amenityIds.get(slug)! })) },
-          reviews: {
-            create: authors.map((userId, i) => {
-              const [title, comment] = pick(reviewText[ratings[i]! >= 9 ? 'great' : 'good']);
-              return { userId, rating: ratings[i]!, title, comment, createdAt: dayOffset(-Math.floor(rand() * 300) - 5) };
-            }),
-          },
-        },
-      });
-      for (const r of p.rooms) {
-        // Seeded so the tax-inclusive nightly price is the round figure shown in the design.
-        const price = Math.round((r.allInNight * 100) / (1 + TAX_RATE));
-        const room = await prisma.room.create({
-          data: {
-            propertyId: property.id, name: r.name, bedType: r.bed, sizeSqm: r.sqm, maxGuests: r.guests,
-            pricePerNight: price, inventory: r.inventory, refundable: r.refundable,
-            description: `${r.sqm} m² with ${r.bed}. Sleeps up to ${r.guests}.`,
-            amenities: { create: ['wifi', 'tv', 'air-conditioning'].map((slug) => ({ amenityId: amenityIds.get(slug)! })) },
-          },
-        });
-        indiaRooms.set(r.name.startsWith('Garden Villa') || p.name === 'Saltwater Cove Resort' ? r.name : `${p.name}: ${r.name}`, { id: room.id, price });
-      }
-    }
-  }
+  const indiaRooms = await seedIndiaCatalogue(rand, pick, amenityIds, reviewerIds);
 
   for (const [index, [name, type, stars, destSlug, base, propAmenities]] of properties.entries()) {
     const dest = destIds.get(destSlug)!;
@@ -388,12 +483,8 @@ async function main() {
     });
   }
 
-  const counts = {
-    destinations: await prisma.destination.count(), properties: await prisma.property.count(),
-    rooms: await prisma.room.count(), amenities: await prisma.amenity.count(),
-    reviews: await prisma.review.count(), users: await prisma.user.count(), bookings: await prisma.booking.count(),
-  };
-  console.log('Seeded:', counts);
+  await seedGuestBookings(reviewerIds);
+  console.log('Seeded:', await counts());
 }
 
 main().finally(() => prisma.$disconnect());

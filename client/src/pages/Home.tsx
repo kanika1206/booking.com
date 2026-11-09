@@ -1,10 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { GridCard } from '../components/Cards';
+import { GridCard, stayHref } from '../components/Cards';
 import { SearchBar } from '../components/SearchBar';
 import { DemoTag, ErrorNote, Icon, Skeleton } from '../components/ui';
-import { DEMO_GENIUS_LEVEL } from '../demo/fixtures';
 import type { Plan } from '../demo/planner';
 import { api, type PropertyCard } from '../lib/api';
 import { dateRange, money, nightsBetween, plural } from '../lib/format';
@@ -12,14 +11,18 @@ import { readStore, useAuth } from '../lib/session';
 import { defaultStay, stayToParams, type Stay } from '../lib/stay';
 import type { IconName } from '../components/icons';
 
-const TRIES = ['Weekend in Jaipur under ₹6k', 'Pet-friendly in Manali', 'Workation in Goa, fast Wi-Fi', 'Quiet beach in Goa with a pool'];
-const PROMISES: { icon: IconName; tone: string; title: string; text: string }[] = [
-  { icon: 'shield-check', tone: 't-ok', title: 'Verified listings', text: 'Address visits, photo matching and a fraud check on every partner account.' },
-  { icon: 'shield-alert', tone: 't-bad', title: 'Scam Shield', text: 'Payment requests outside the app are blocked in chat before you can be tricked.' },
-  { icon: 'tag', tone: 't-accent', title: 'All-in pricing', text: 'The price you see includes every tax and fee. No surprises at check-in.' },
-  { icon: 'sync', tone: 't-action', title: 'Live availability', text: 'Rooms are counted night by night, so “available” really means available.' },
+const PERKS: { icon: IconName; text: string }[] = [
+  { icon: 'tag', text: 'All-in prices, tax included' },
+  { icon: 'sync', text: 'Live room counts, night by night' },
+  { icon: 'check', text: 'Free cancellation on flexible rates' },
+  { icon: 'trend-down', text: 'Rebook in one tap if the price drops' },
+  { icon: 'star', text: 'Reviews only from completed stays' },
 ];
-
+/** "Fri 14", like the reference's date slips. */
+const shortDay = (iso: string) => {
+  const d = new Date(`${iso}T00:00:00Z`);
+  return `${d.toLocaleDateString('en-GB', { weekday: 'short', timeZone: 'UTC' })} ${d.getUTCDate()}`;
+};
 /** Tags come from each stay's real price and rating, so "Splurge" can't land on the cheapest one. */
 function styleTags(items: PropertyCard[]) {
   const byPrice = [...items].sort((a, b) => (a.startingPrice ?? 0) - (b.startingPrice ?? 0));
@@ -83,56 +86,65 @@ export function HomePage() {
   });
   const picks = styleTags(featured.data ?? []);
   const plan = (q: string) => nav(`/planner?q=${encodeURIComponent(q)}`);
+  const slips = (featured.data ?? []).slice(0, 2);
+  const nights = nightsBetween(stay.checkIn, stay.checkOut);
+  const [inDay, outDay] = [stay.checkIn, stay.checkOut].map(shortDay);
   return (
     <>
       <section className="hero">
-        <div className="page stack lg">
-          <div className="stack">
-            <h1 className="d-xl hide-m">Stays you can trust,<br />planned in seconds.</h1>
-            <h1 className="d-xl show-block-m">Where to next{user ? `, ${user.firstName}` : ''}?</h1>
-            <p className="body-l hide-m">Verified listings, all-in prices and live availability, with a trip planner that gets you to a real booking.</p>
+        <div className="page hero-body">
+          <aside className="hero-card rise d2" aria-label="Featured stays for your dates">
+            <div className="where"><Icon name="map-pin" size={14} />{slips[0] ? `${slips[0].destination.name}, ${slips[0].destination.country}` : 'Featured this week'}</div>
+            {featured.isLoading && [0, 1].map((i) => <div key={i} className="stay-slip skeleton" style={{ height: 92 }} />)}
+            {slips.map((p) => (
+              <Link key={p.id} className="stay-slip" to={stayHref(p.slug, stay)}>
+                <div className="row between"><span className="strong s" style={{ fontSize: 14 }}>{p.name}</span><span className="cap muted">{p.ratingAvg.toFixed(2)} rating</span></div>
+                <div className="dates">
+                  <span><small>Check-in</small><b>{inDay}</b></span>
+                  <span className="nights">{plural(nights, 'night')}</span>
+                  <span style={{ textAlign: 'right' }}><small>Check-out</small><b>{outDay}</b></span>
+                </div>
+              </Link>
+            ))}
+          </aside>
+          <div className="hero-title stack md rise">
+            <h1 className="d-xl">
+              <span className="hide-m">Verified stays across India, priced all-in.</span>
+              <span className="show-block-m">Where to next{user ? `, ${user.firstName}` : ''}?</span>
+            </h1>
+            <p className="body-l hero-lede">Every price includes tax, every room count is live, and every listing is checked before it goes up.</p>
           </div>
+        </div>
+        <div className="page finder stack md rise d1" id="finder">
           <div className="segment" role="tablist" style={{ width: 'fit-content' }}>
             <button role="tab" aria-selected={mode === 'search'} className={mode === 'search' ? 'on' : ''} onClick={() => setMode('search')}><Icon name="search" size={18} />Search stays</button>
             <button role="tab" aria-selected={mode === 'describe'} className={mode === 'describe' ? 'on' : ''} onClick={() => setMode('describe')}><Icon name="sparkle" size={18} />Describe your trip</button>
           </div>
           {mode === 'search' ? <SearchBar initial={{ ...stay, destination: 'Goa, India' }} /> : (
             <form className="ai-bar" onSubmit={(e) => { e.preventDefault(); if (text.trim()) plan(text); }}>
-              <label className="sb-field" style={{ color: 'var(--text)' }}>
+              <label className="sb-field">
                 <Icon name="sparkle" size={24} />
                 <span className="grow"><span className="sb-label ai">Describe your trip</span>
                   <input className="sb-value" style={{ border: 0, outline: 0, boxShadow: 'none', width: '100%' }} value={text} onChange={(e) => setText(e.target.value)} placeholder="Quiet beach stay in Goa for 2, pool, under ₹9k a night" />
                 </span>
               </label>
-              <button className="btn ai sb-go" type="submit"><Icon name="sparkle" />Plan it</button>
+              <button className="btn sb-go" type="submit"><Icon name="sparkle" />Plan it</button>
             </form>
           )}
-          <div className="row wrap">
-            <span className="strong s">Try:</span>
-            {TRIES.map((t) => <button key={t} className="chip try" onClick={() => plan(t)}><Icon name="sparkle" size={14} />{t}</button>)}
-          </div>
+        </div>
+        <div className="page">
+          <ul className="perks rise d2">
+            {PERKS.map((p) => <li key={p.text}><Icon name={p.icon} size={18} />{p.text}</li>)}
+          </ul>
         </div>
       </section>
 
       <div className="page">
-        <div className="section row wrap top" style={{ gap: 20 }}>
+        <div className="section row wrap top home-plans" style={{ gap: 20 }}>
           <PlanBanner />
           <div style={{ minWidth: 300 }}><RecentSearch /></div>
         </div>
 
-        <section className="section">
-          <div className="over overline-row">Why book here</div>
-          <h2 className="h2 row wrap" style={{ marginBottom: 20 }}>Every booking, protected end to end <DemoTag label="Concept" title="Verification and Scam Shield are demonstrated with sample data. Pricing and availability are real." /></h2>
-          <div className="grid-4">
-            {PROMISES.map((p) => (
-              <div className="card stack md" key={p.title}>
-                <span className={`icon-tile ${p.tone}`}><Icon name={p.icon} size={24} /></span>
-                <h3 className="h4">{p.title}</h3>
-                <p className="s muted" style={{ fontSize: 14 }}>{p.text}</p>
-              </div>
-            ))}
-          </div>
-        </section>
 
         <section className="section">
           <div className="over overline-row">Trending</div>
@@ -160,7 +172,6 @@ export function HomePage() {
           <div className="over overline-row ai">Picked for you · 4 different styles</div>
           <div className="row between wrap" style={{ marginBottom: 20 }}>
             <h2 className="h2">Not four lookalikes, a real choice</h2>
-            <span className="badge ai"><Icon name="sparkle" size={14} />Mixed by price, area &amp; style</span>
           </div>
           {featured.error ? <ErrorNote error={featured.error} retry={() => featured.refetch()} /> : (
             <div className="grid-4">
@@ -170,15 +181,6 @@ export function HomePage() {
           )}
         </section>
 
-        {user && (
-          <section className="section card row wrap" style={{ background: 'var(--bg-accent-tint)', borderColor: 'var(--bg-accent)', gap: 24 }}>
-            <span className="icon-tile" style={{ width: 64, height: 64, background: 'var(--bg-brand)', color: 'var(--bg-accent)', fontWeight: 800, fontSize: 22 }}>G2</span>
-            <div className="grow" style={{ minWidth: 240 }}>
-              <h2 className="h3 row wrap">You’re {DEMO_GENIUS_LEVEL}, {user.firstName} <DemoTag /></h2>
-              <p className="muted">A loyalty concept from the design. No discount is applied to your price in this prototype.</p>
-            </div>
-          </section>
-        )}
       </div>
     </>
   );
